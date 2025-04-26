@@ -8,6 +8,9 @@ jupyter = "*"
 langchain = "*"
 langchain-aws = "*"
 boto3 = "*"
+flask = "*"
+streamlit = "*"
+requests = "*"
 
 [dev-packages]
 
