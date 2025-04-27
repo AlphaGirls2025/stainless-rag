@@ -159,8 +159,12 @@ def update_pdf_knowledgebase():
 
     # update knowledge base
     knowledge_base_id = "YQVYVZJI42"
-    data_source_id = "H2YIF5X7ZI"
-    ingestion_job_id, status = knowledgebase.ingestion_job(knowledge_base_id, data_source_id)
+    ingestion_job_id, status = knowledgebase.refresh_data_source(
+        knowledge_base_id=knowledge_base_id,
+        s3_bucket_arn=s3.get_s3_bucket_arn(s3_bucket_name),
+        s3_prefix="split_pdf_new/",
+        data_source_name="S3_new_pdf"
+    )
 
     if status == "COMPLETE":
         return jsonify({"message": f"Knowledge Base updated successfully!"}), 200
