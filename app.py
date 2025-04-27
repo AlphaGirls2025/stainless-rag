@@ -1,7 +1,10 @@
+from re import split
 from flask import Flask, request, jsonify
 import boto3
 import json
 from werkzeug.utils import secure_filename
+
+from lib import s3, tractpdf, opensearch, knowledgebase
 
 app = Flask(__name__)
 
@@ -14,7 +17,8 @@ textract = boto3.client('textract', region_name='us-east-1')
 knowledge_base_ids = [
     "FSZ5KXW7FT",
     "CE1KPWLQBC",
-    "ALVPHIH9ZC"
+    "ALVPHIH9ZC",
+    "YQVYVZJI42"
 ]
 
 def extract_text_from_image(file_bytes):
@@ -137,6 +141,31 @@ def find_similar_steel():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+UPLOAD_FOLDER = "uploaded_pdfs"
+
+@app.route("/update_pdf_knowledgebase", methods=["POST"])
+def update_pdf_knowledgebase():
+    data = request.json
+    pdf_file_path = data.get("pdf_file_path")
+
+    # split pdf file
+    split_pdf_path = "./data/split_pdf_new/"
+    split_pdfs = tractpdf.split_pdf_pages(pdf_file_path, split_pdf_path)
+    
+    # upload to s3 bucket
+    s3_bucket_name = "aiwave-hackathon-team"
+    for pdf_file_path in split_pdfs:
+        s3.upload_file_to_s3(s3_bucket_name, pdf_file_path, "split_pdf_new/" + pdf_file_path.split("/")[-1])
+
+    # update knowledge base
+    knowledge_base_id = "YQVYVZJI42"
+    data_source_id = "H2YIF5X7ZI"
+    ingestion_job_id, status = knowledgebase.ingestion_job(knowledge_base_id, data_source_id)
+
+    if status == "COMPLETE":
+        return jsonify({"message": f"Knowledge Base updated successfully!"}), 200
+    elif status == "FAIL":
+        return jsonify({"error": "Failed to update Knowledge Base"}), 500
 
 
 @app.route("/ask", methods=["POST"])
